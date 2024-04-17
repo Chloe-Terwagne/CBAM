@@ -1,1 +1,1 @@
-# CBAM
+# CBAM (pronounced /kəˈbæm/)
