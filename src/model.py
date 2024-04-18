@@ -31,7 +31,7 @@ class EarlyStopping:
 class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
-        self.fc1 = nn.Linear(1280, 256)
+        self.fc1 = nn.Linear(1281, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
@@ -53,11 +53,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
         
-        self.fc1 = nn.Linear(1280, 512)#change this to final dimension 
+        self.fc1 = nn.Linear(1281, 512)#change this to final dimension 
         self.fc21 = nn.Linear(512, 96)
         self.fc22 = nn.Linear(512, 96)
         self.fc3 = nn.Linear(96, 512)
-        self.fc4 = nn.Linear(512, 1280)
+        self.fc4 = nn.Linear(512, 1281)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -82,7 +82,7 @@ class VAE(nn.Module):
 class EmbeddingModel(nn.Module):
     def __init__(self):
         super(EmbeddingModel, self).__init__()
-        self.fc1 = nn.Linear(1280, 256)
+        self.fc1 = nn.Linear(1281, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
