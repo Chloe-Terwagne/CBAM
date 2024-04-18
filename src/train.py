@@ -191,6 +191,10 @@ def update_embedding(loader):
         blosum_expanded = blosum_scores_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, batch['embedding'].shape[1], 1)
         batch['embedding'] = torch.cat((batch['embedding'], blosum_expanded), dim=-1)
 
+        # features (batch_size, seq_size, 6)
+        features = torch.tensor([get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']])
+        batch['embedding'] = torch.cat((batch['embedding'], features), dim=-1)
+
         # print("After adding blossum_score, embedding shape:", batch['embedding'].shape)
         updated_batches.append(batch)
 
