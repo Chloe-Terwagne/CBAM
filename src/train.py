@@ -171,7 +171,9 @@ def extract_wt_sequence(mutant, mutated_sequence):
     # Retrieve the WT sequence
     wt_sequence = mutated_sequence[:position - 1] + ref_aa + mutated_sequence[position:]
     return wt_sequence
-
+    
+def update_embedding(loader):
+    updated_batches = []
     for batch in loader:
         # Assuming batch['embedding'] and batch['mutant'] are correctly formatted and exist
         # print("Before embedding shape:", batch['embedding'].shape)
