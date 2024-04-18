@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 from data_loader import get_dataloader
 from model import *
-DATA_DIR = 'data'
+DATA_DIR = '/home/jovyan/shared/judewells/secret-evaluation-data/evaluation_set_embeddings'
 OUT_DIR = 'outputs'
 os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -57,14 +57,14 @@ def train_model(model, train_loader, validation_loader, plot=False):
             optimizer.zero_grad()
             outputs = model(data).squeeze()
             # recon_batch, mu, logvar = model(batch)
-            pred_vals.extend(outputs.detach().numpy())
-            true_vals.extend(labels.numpy())
             loss = criterion(outputs, labels)
             # loss = loss_function(recon_batch,batch['embedding'], mu, logvar)
             loss.backward()
             optimizer.step()
-
             running_loss += loss.item()
+            pred_vals.extend(outputs.detach().cpu().numpy())
+            true_vals.extend(labels.detach().cpu().numpy())
+
 
         epoch_loss = running_loss / len(train_loader)
         train_metrics = get_performance_metrics(pred_vals, true_vals)
@@ -94,8 +94,8 @@ def evaluate_model(model, test_loader):
         for data in test_loader:
             labels = data['DMS_score']
             outputs = model(data)
-            predictions.extend(outputs.numpy())
-            actuals.extend(labels.numpy())
+            predictions.extend(outputs.detach().cpu().numpy())
+            actuals.extend(labels.detach().cpu().numpy())
     metrics = get_performance_metrics(predictions, actuals)
     return metrics
 
@@ -173,6 +173,7 @@ def extract_wt_sequence(mutant, mutated_sequence):
     return wt_sequence
     
 def update_embedding(loader):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     updated_batches = []
     for batch in loader:
         # Assuming batch['embedding'] and batch['mutant'] are correctly formatted and exist
@@ -184,12 +185,12 @@ def update_embedding(loader):
 #         print("Blosum values:", blosum_vals)
 #         print("Num mutants in batch", len(batch['mutant']))
         
-        blosum_scores_tensor = torch.tensor(blosum_vals, dtype=batch['embedding'].dtype)
+        blosum_scores_tensor = torch.tensor(blosum_vals, dtype=batch['embedding'].dtype).to(device)
         #print('CHECK', blosum_scores_tensor.shape)
         # I want (batch_size, seq_size, 1281), (broadcasting across seq_size)
         
         blosum_expanded = blosum_scores_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, batch['embedding'].shape[1], 1)
-        batch['embedding'] = torch.cat((batch['embedding'], blosum_expanded), dim=-1)
+        batch['embedding'] = torch.cat((batch['embedding'], blosum_expanded), dim=-1).to(device)
 
         # features (batch_size, seq_size, 6)
         #features = torch.tensor([get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']])
@@ -217,6 +218,7 @@ def main(experiment_path, train_folds=[1,2,3], validation_folds=[4], test_folds=
 
     # model = ProteinModel()
     model = EmbeddingModel()
+    model.to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
     start = time.time()
     train_model(model, train_loader, val_loader, plot=plot)
     train_time = time.time() - start
@@ -238,15 +240,15 @@ if __name__ == "__main__":
     else:
         experiments = list(set([fname.split('.')[0] for fname in os.listdir(DATA_DIR) if not fname.startswith('.')]))
     for experiment in experiments:
-        # try:
-        experiment_path = f"{DATA_DIR}/{experiment}"
-        new_row = main(experiment_path=experiment_path)
-        rows.append(new_row)
-        # except Exception as e:
-        #     print(f"Error with {experiment}: {e}")
-        #     continue
+        try:
+            experiment_path = f"{DATA_DIR}/{experiment}"
+            new_row = main(experiment_path=experiment_path)
+            rows.append(new_row)
+        except Exception as e:
+            print(f"Error with {experiment}: {e}")
+            continue
     df = pd.DataFrame(rows)
-    df_savepath = f'{OUT_DIR}/supervised_results.csv'
+    df_savepath = f'{OUT_DIR}/CBAM_supervised_results.csv'
     df.to_csv(df_savepath, index=False)
     print(f"Metrics for {len(df)} experiments saved to {os.getcwd()}/{df_savepath}")
     print(df.head())
