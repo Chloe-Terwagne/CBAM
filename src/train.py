@@ -72,7 +72,7 @@ def get_performance_metrics(predictions, actuals):
 
 
 def train_model(model, train_loader, validation_loader, plot=False):
-    num_epochs = 100
+    num_epochs = 120
     early_stopping = EarlyStopping(patience=5, verbose=True)
 
     criterion = torch.nn.MSELoss()
