@@ -73,7 +73,7 @@ def get_performance_metrics(predictions, actuals):
 
 def train_model(model, train_loader, validation_loader, plot=False):
     num_epochs = 100
-    early_stopping = EarlyStopping(patience=20, verbose=True)
+    early_stopping = EarlyStopping(patience=10, verbose=True)
 
     criterion = torch.nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
