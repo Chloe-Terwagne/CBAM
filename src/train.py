@@ -250,6 +250,7 @@ def update_embedding(loader):
 
         # Calculate blosum scores and update embeddings
         blosum_vals = [blossum_score(mut) for mut in batch['mutant']]
+        blosum_vals=np.array(blosum_vals)
         #         print("Mutants:", batch['mutant'])
         #         print("Blosum values:", blosum_vals)
         #         print("Num mutants in batch", len(batch['mutant']))
@@ -271,6 +272,7 @@ def update_embedding(loader):
         feature_matricies = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
         feature_matricies = [feature_matrix if feature_matrix != None else np.zeros((len(mut_seq), 6)) for
                              mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matricies)]
+        feature_matricies=np.array(feature_matricies)
         feature_matricies = torch.tensor(feature_matricies)
         # transform (batch_size, seq_size, 6) -> (batch_size, seq_size+2, 6) by padding by zeros on both sides
         feature_matricies = torch.nn.functional.pad(feature_matricies, (0, 0, 1, 1))
