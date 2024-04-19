@@ -245,50 +245,26 @@ def calculate_amino_acid_frequencies(sequence):
 
     return freq_list
 
-
 def update_embedding(loader):
-    #print("type loader= ", type(loader))
     updated_batches = []
     for batch in loader:
-        # Assuming batch['embedding'] and batch['mutant'] are correctly formatted and exist
-        #print("Before embedding shape:", batch['embedding'].shape)
-
         # Calculate blosum scores and update embeddings
         blosum_vals = [blossum_score(mut) for mut in batch['mutant']]
-        # blosum_vals=np.array(blosum_vals)
-        #         print("Mutants:", batch['mutant'])
-        #         print("Blosum values:", blosum_vals)
-        #         print("Num mutants in batch", len(batch['mutant']))
-
-        blosum_scores_tensor = torch.tensor(blosum_vals, dtype=batch['embedding'].dtype)
-        # I want (batch_size, seq_size, 1281), (broadcasting across seq_size)
-
+        blosum_scores_np = np.array(blosum_vals)
+        blosum_scores_tensor = torch.tensor(blosum_scores_np, dtype=batch['embedding'].dtype)
         blosum_expanded = blosum_scores_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, batch['embedding'].shape[1], 1)
-        # Now embedding is of size (batch_size, seq_size, 1281)
-
         batch['embedding'] = torch.cat((batch['embedding'], blosum_expanded), dim=-1)
-        # now I want to concat antoher features to the embeding this feature is a vector of float of size size_seq)
-        # so I want my embedding to be from (batch_size, seq_size, 1281) to (batch_size, seq_size, 1282)
-
-        # intermediate
-        # print("intermediate embedding shape:", batch['embedding'].shape)
-
-#         # feaxtures (batch_size, seq_size, 6)
-#         feature_matricies = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
-#         feature_matricies = [feature_matrix if feature_matrix != None else np.zeros((len(mut_seq), 6)) for
-#                              mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matricies)]
-#         # feature_matricies=np.array(feature_matricies)
-#         feature_matricies = torch.tensor(feature_matricies)
-#         # transform (batch_size, seq_size, 6) -> (batch_size, seq_size+2, 6) by padding by zeros on both sides
-#         feature_matricies = torch.nn.functional.pad(feature_matricies, (0, 0, 1, 1))
-
-#         batch['embedding'] = torch.cat((batch['embedding'], feature_matricies), dim=-1)
+        # Create feature matrices
+        feature_matrices = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
+        feature_matrices = [feature_matrix if feature_matrix is not None else np.zeros((len(mut_seq), 6)) for mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matrices)]
+        feature_matrices_np = np.array(feature_matrices)
+        feature_matrices_tensor = torch.tensor(feature_matrices_np)
+        # Pad feature matrices
+        feature_matrices_tensor = torch.nn.functional.pad(feature_matrices_tensor, (0, 0, 1, 1))
+        # Concatenate feature matrices to embeddings
+        batch['embedding'] = torch.cat((batch['embedding'], feature_matrices_tensor), dim=-1)
         batch['embedding'] = batch['embedding'].float()
-
-        #         print("After embedding shape:", batch['embedding'].shape)
         updated_batches.append(batch)
-    #print("type loader= ", type(updated_batches))
-
     return updated_batches
 
 
