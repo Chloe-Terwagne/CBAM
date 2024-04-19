@@ -242,11 +242,11 @@ def calculate_amino_acid_frequencies(sequence):
 
 
 def update_embedding(loader):
-    print("type loader= ", type(loader))
+    #print("type loader= ", type(loader))
     updated_batches = []
     for batch in loader:
         # Assuming batch['embedding'] and batch['mutant'] are correctly formatted and exist
-        print("Before embedding shape:", batch['embedding'].shape)
+        #print("Before embedding shape:", batch['embedding'].shape)
 
         # Calculate blosum scores and update embeddings
         blosum_vals = [blossum_score(mut) for mut in batch['mutant']]
@@ -265,7 +265,7 @@ def update_embedding(loader):
         # so I want my embedding to be from (batch_size, seq_size, 1281) to (batch_size, seq_size, 1282)
 
         # intermediate
-        print("intermediate embedding shape:", batch['embedding'].shape)
+        #print("intermediate embedding shape:", batch['embedding'].shape)
 
         # features (batch_size, seq_size, 6)
         feature_matricies = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
@@ -276,10 +276,11 @@ def update_embedding(loader):
         feature_matricies = torch.nn.functional.pad(feature_matricies, (0, 0, 1, 1))
 
         batch['embedding'] = torch.cat((batch['embedding'], feature_matricies), dim=-1)
+        batch['embedding'] = batch['embedding'].float()
 
         #         print("After embedding shape:", batch['embedding'].shape)
         updated_batches.append(batch)
-    print("type loader= ", type(updated_batches))
+    #print("type loader= ", type(updated_batches))
 
     return updated_batches
 
