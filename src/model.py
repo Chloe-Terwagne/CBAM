@@ -31,7 +31,7 @@ class EarlyStopping:
 class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
-        self.fc1 = nn.Linear(1287, 256)
+        self.fc1 = nn.Linear(1281, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
@@ -53,11 +53,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
         
-        self.fc1 = nn.Linear(1287, 512)#change this to final dimension 
+        self.fc1 = nn.Linear(1281, 512)#change this to final dimension 
         self.fc21 = nn.Linear(512, 96)
         self.fc22 = nn.Linear(512, 96)
         self.fc3 = nn.Linear(96, 512)
-        self.fc4 = nn.Linear(512, 1287)
+        self.fc4 = nn.Linear(512, 1281)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -77,12 +77,19 @@ class VAE(nn.Module):
         mu, logvar = self.encode(x)
         z = self.reparameterize(mu, logvar)
         return self.decode(z), mu, logvar
-    
-    
-class EmbeddingModel(nn.Module):
+
+
+
+class ProteinModel(nn.Module):
     def __init__(self):
-        super(EmbeddingModel, self).__init__()
-        self.fc1 = nn.Linear(1287, 256)
+        super(ProteinModel, self).__init__()
+        # Convolutional layers
+        self.conv1 = nn.Conv1d(in_channels=1281, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(64, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
@@ -92,9 +99,60 @@ class EmbeddingModel(nn.Module):
                                                 'logits', 'wt_logits', 'wt_embedding']
         :return: predicted DMS score
         """
-        x = data['embedding']
+        x = data['embedding'].unsqueeze(1)  # Add a channel dimension
+        x = x.permute(0, 3, 2)  # Rearrange dimensions to [batch_size, 1281, sequence_length]
+
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.relu(x)
+
+        # Global average pooling across the sequence dimension
+        x = nn.functional.adaptive_avg_pool1d(x, 1).squeeze(2)
+
+        # Fully connected layers
         x = self.fc1(x)
         x = self.relu(x)
-        x = torch.sum(x, dim=1)
+        x = self.fc2(x)
+        return x
+
+class EmbeddingCNN(nn.Module):
+    def __init__(self):
+        super(EmbeddingCNN, self).__init__()
+        # Convolutional layers
+        self.conv1 = nn.Conv1d(in_channels=1, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(256, 256)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(256, 1)
+
+    def forward(self, data: dict):
+        """
+        :param data: Dictionary containing ['embedding', 'mutant', 'mutant_sequence',
+                                                'logits', 'wt_logits', 'wt_embedding']
+        :return: predicted DMS score
+        """
+        x = data['embedding'].unsqueeze(1)  # Add a channel dimension
+        # Dynamically calculate the sequence length for each input tensor
+        sequence_lengths = torch.tensor([emb.shape[1] for emb in data['embedding']])
+        
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.relu(x)
+
+        # Global average pooling across the sequence dimension
+        x = nn.functional.adaptive_avg_pool1d(x, 1).squeeze(2)
+
+        # Fully connected layers
+        x = self.fc1(x)
+        x = self.relu(x)
         x = self.fc2(x)
         return x
