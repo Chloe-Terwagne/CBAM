@@ -131,12 +131,13 @@ class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
         # Convolutional layers
-        self.conv1 = nn.Conv1d(in_channels=1287, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=1287, out_channels=580, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=580, out_channels=92, kernel_size=3, stride=1, padding=1)
+        self.conv3 = nn.Conv1d(in_channels=92, out_channels=580, kernel_size=3, stride=1, padding=1)
+        self.conv4 = nn.Conv1d(in_channels=580, out_channels=1287, kernel_size=3, stride=1, padding=1)
 
         # Fully connected layers
-        self.fc1 = nn.Linear(64, 256)
+        self.fc1 = nn.Linear(1287, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
@@ -158,6 +159,8 @@ class ProteinModel(nn.Module):
         x = self.conv2(x)
         x = self.relu(x)
         x = self.conv3(x)
+        x = self.relu(x)
+        x = self.conv4(x)
         x = self.relu(x)
 
         # Global average pooling across the sequence dimension
