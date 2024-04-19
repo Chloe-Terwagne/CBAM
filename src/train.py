@@ -20,7 +20,7 @@ import numpy as np
 from data_loader import get_dataloader
 from model import *
 
-DATA_DIR = 'data'
+DATA_DIR = '/home/jovyan/shared/cyau-hdruk/roche-2024-data/training_set_embeddings'
 OUT_DIR = 'outputs'
 os.makedirs(OUT_DIR, exist_ok=True)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,8 +72,8 @@ def get_performance_metrics(predictions, actuals):
 
 
 def train_model(model, train_loader, validation_loader, plot=False):
-    num_epochs = 120
-    early_stopping = EarlyStopping(patience=5, verbose=True)
+    num_epochs = 100
+    early_stopping = EarlyStopping(patience=20, verbose=True)
 
     criterion = torch.nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
@@ -91,13 +91,14 @@ def train_model(model, train_loader, validation_loader, plot=False):
             labels = data['DMS_score'].to(device)
             optimizer.zero_grad()
             outputs = model(data).squeeze()
-            # recon_batch, mu, logvar = model(batch)
-            pred_vals.extend(outputs.detach().cpu().numpy())
-            true_vals.extend(labels.detach().cpu().numpy())
             loss = criterion(outputs, labels)
             # loss = loss_function(recon_batch,batch['embedding'], mu, logvar)
             loss.backward()
             optimizer.step()
+            # recon_batch, mu, logvar = model(batch)
+            pred_vals.extend(outputs.detach().cpu().numpy())
+            true_vals.extend(labels.detach().cpu().numpy())
+
             # scheduler.step()
 
 
@@ -131,8 +132,8 @@ def evaluate_model(model, test_loader):
         for data in test_loader:
             labels = data['DMS_score']
             outputs = model(data)
-            predictions.extend(outputs.numpy())
-            actuals.extend(labels.numpy())
+            predictions.extend(outputs.detach().cpu().numpy())
+            actuals.extend(labels.detach().cpu().numpy())
     metrics = get_performance_metrics(predictions, actuals)
     return metrics
 
@@ -251,19 +252,19 @@ def update_embedding(loader):
         # Calculate blosum scores and update embeddings
         blosum_vals = [blossum_score(mut) for mut in batch['mutant']]
         blosum_scores_np = np.array(blosum_vals)
-        blosum_scores_tensor = torch.tensor(blosum_scores_np, dtype=batch['embedding'].dtype)
-        blosum_expanded = blosum_scores_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, batch['embedding'].shape[1], 1)
+        blosum_scores_tensor = torch.tensor(blosum_scores_np, dtype=batch['embedding'].dtype).to(device)
+        blosum_expanded = blosum_scores_tensor.unsqueeze(-1).unsqueeze(-1).expand(-1, batch['embedding'].shape[1], 1).to(device)
         batch['embedding'] = torch.cat((batch['embedding'], blosum_expanded), dim=-1)
         # Create feature matrices
         feature_matrices = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
         feature_matrices = [feature_matrix if feature_matrix is not None else np.zeros((len(mut_seq), 6)) for mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matrices)]
         feature_matrices_np = np.array(feature_matrices)
-        feature_matrices_tensor = torch.tensor(feature_matrices_np)
+        feature_matrices_tensor = torch.tensor(feature_matrices_np).to(device)
         # Pad feature matrices
-        feature_matrices_tensor = torch.nn.functional.pad(feature_matrices_tensor, (0, 0, 1, 1))
+        feature_matrices_tensor = torch.nn.functional.pad(feature_matrices_tensor, (0, 0, 1, 1)).to(device)
         # Concatenate feature matrices to embeddings
         batch['embedding'] = torch.cat((batch['embedding'], feature_matrices_tensor), dim=-1)
-        batch['embedding'] = batch['embedding'].float()
+        batch['embedding'] = batch['embedding'].float().to(device)
         updated_batches.append(batch)
     return updated_batches
 
@@ -305,16 +306,16 @@ if __name__ == "__main__":
     else:
         experiments = list(set([fname.split('.')[0] for fname in os.listdir(DATA_DIR) if not fname.startswith('.')]))
     for experiment in experiments:
-        # try:
-        experiment_path = f"{DATA_DIR}/{experiment}"
-        new_row = main(experiment_path=experiment_path)
-        rows.append(new_row)
-        # except Exception as e:
-        #     print(f"Error with {experiment}: {e}")
-        #     continue
-    df = pd.DataFrame(rows)
-    df_savepath = f'{OUT_DIR}/supervised_results.csv'
-    df.to_csv(df_savepath, index=False)
+        try:
+            experiment_path = f"{DATA_DIR}/{experiment}"
+            new_row = main(experiment_path=experiment_path)
+            rows.append(new_row)
+        except Exception as e:
+            print(f"Error with {experiment}: {e}")
+            continue
+        df = pd.DataFrame(rows)
+        df_savepath = f'{OUT_DIR}/CABM3_supervised_results.csv'
+        df.to_csv(df_savepath, index=False)
     print(f"Metrics for {len(df)} experiments saved to {os.getcwd()}/{df_savepath}")
     print(df.head())
     end = time.time()
