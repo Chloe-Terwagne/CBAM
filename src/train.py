@@ -3,6 +3,7 @@ import sys
 import warnings
 import time
 import glob
+import torch.optim.lr_scheduler as lr_scheduler
 
 # supress pandas deprication warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -76,6 +77,8 @@ def train_model(model, train_loader, validation_loader, plot=False):
 
     criterion = torch.nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
+    # scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)  # Adjust lr every 30 epochs by multiplying it by gamma
+
     train_epoch_metrics = []
     val_epoch_metrics = []
     for epoch in range(num_epochs):
@@ -89,12 +92,14 @@ def train_model(model, train_loader, validation_loader, plot=False):
             optimizer.zero_grad()
             outputs = model(data).squeeze()
             # recon_batch, mu, logvar = model(batch)
-            pred_vals.extend(outputs.detach().numpy())
-            true_vals.extend(labels.numpy())
+            pred_vals.extend(outputs.detach().cpu().numpy())
+            true_vals.extend(labels.detach().cpu().numpy())
             loss = criterion(outputs, labels)
             # loss = loss_function(recon_batch,batch['embedding'], mu, logvar)
             loss.backward()
             optimizer.step()
+            # scheduler.step()
+
 
             running_loss += loss.item()
 
@@ -250,7 +255,7 @@ def update_embedding(loader):
 
         # Calculate blosum scores and update embeddings
         blosum_vals = [blossum_score(mut) for mut in batch['mutant']]
-        blosum_vals=np.array(blosum_vals)
+        # blosum_vals=np.array(blosum_vals)
         #         print("Mutants:", batch['mutant'])
         #         print("Blosum values:", blosum_vals)
         #         print("Num mutants in batch", len(batch['mutant']))
@@ -266,18 +271,18 @@ def update_embedding(loader):
         # so I want my embedding to be from (batch_size, seq_size, 1281) to (batch_size, seq_size, 1282)
 
         # intermediate
-        #print("intermediate embedding shape:", batch['embedding'].shape)
+        # print("intermediate embedding shape:", batch['embedding'].shape)
 
-        # features (batch_size, seq_size, 6)
-        feature_matricies = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
-        feature_matricies = [feature_matrix if feature_matrix != None else np.zeros((len(mut_seq), 6)) for
-                             mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matricies)]
-        feature_matricies=np.array(feature_matricies)
-        feature_matricies = torch.tensor(feature_matricies)
-        # transform (batch_size, seq_size, 6) -> (batch_size, seq_size+2, 6) by padding by zeros on both sides
-        feature_matricies = torch.nn.functional.pad(feature_matricies, (0, 0, 1, 1))
+#         # feaxtures (batch_size, seq_size, 6)
+#         feature_matricies = [get_feature_matrix(wt_seq) for wt_seq in batch['mutant_sequence']]
+#         feature_matricies = [feature_matrix if feature_matrix != None else np.zeros((len(mut_seq), 6)) for
+#                              mut_seq, feature_matrix in zip(batch['mutant_sequence'], feature_matricies)]
+#         # feature_matricies=np.array(feature_matricies)
+#         feature_matricies = torch.tensor(feature_matricies)
+#         # transform (batch_size, seq_size, 6) -> (batch_size, seq_size+2, 6) by padding by zeros on both sides
+#         feature_matricies = torch.nn.functional.pad(feature_matricies, (0, 0, 1, 1))
 
-        batch['embedding'] = torch.cat((batch['embedding'], feature_matricies), dim=-1)
+#         batch['embedding'] = torch.cat((batch['embedding'], feature_matricies), dim=-1)
         batch['embedding'] = batch['embedding'].float()
 
         #         print("After embedding shape:", batch['embedding'].shape)
@@ -300,6 +305,7 @@ def main(experiment_path, train_folds=[1, 2, 3], validation_folds=[4], test_fold
     test_loader = update_embedding(test_loader)
 
     model = ProteinModel()
+    # model = EmbeddingCNN()
     model.to(device)
 
     start = time.time()
