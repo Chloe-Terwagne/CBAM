@@ -299,9 +299,8 @@ def main(experiment_path, train_folds=[1, 2, 3], validation_folds=[4], test_fold
     test_loader = get_dataloader(experiment_path=experiment_path, folds=test_folds, return_logits=True)
     test_loader = update_embedding(test_loader)
 
-    # model = ProteinModel()
-    model = EmbeddingModel()
-    # model.to(device)
+    model = ProteinModel()
+    model.to(device)
 
     start = time.time()
     train_model(model, train_loader, val_loader, plot=plot)
