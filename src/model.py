@@ -31,7 +31,7 @@ class EarlyStopping:
 class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
-        self.fc1 = nn.Linear(1281, 256)
+        self.fc1 = nn.Linear(1287, 256)
         self.relu = nn.ReLU()
         self.fc2 = nn.Linear(256, 1)
 
@@ -53,11 +53,11 @@ class VAE(nn.Module):
     def __init__(self):
         super(VAE, self).__init__()
         
-        self.fc1 = nn.Linear(1281, 512)#change this to final dimension 
+        self.fc1 = nn.Linear(1287, 512)#change this to final dimension 
         self.fc21 = nn.Linear(512, 96)
         self.fc22 = nn.Linear(512, 96)
         self.fc3 = nn.Linear(96, 512)
-        self.fc4 = nn.Linear(512, 1281)
+        self.fc4 = nn.Linear(512, 1287)
 
     def encode(self, x):
         h1 = F.relu(self.fc1(x))
@@ -84,7 +84,7 @@ class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
         # Convolutional layers
-        self.conv1 = nn.Conv1d(in_channels=1281, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=1287, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
 
@@ -100,7 +100,7 @@ class ProteinModel(nn.Module):
         :return: predicted DMS score
         """
         x = data['embedding'].unsqueeze(1)  # Add a channel dimension
-        x = x.permute(0, 3, 2)  # Rearrange dimensions to [batch_size, 1281, sequence_length]
+        x = x.permute(0, 3, 2)  # Rearrange dimensions to [batch_size, 1287, sequence_length]
 
         x = self.conv1(x)
         x = self.relu(x)
