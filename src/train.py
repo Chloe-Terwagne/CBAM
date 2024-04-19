@@ -306,16 +306,16 @@ if __name__ == "__main__":
     else:
         experiments = list(set([fname.split('.')[0] for fname in os.listdir(DATA_DIR) if not fname.startswith('.')]))
     for experiment in experiments:
-        # try:
-        experiment_path = f"{DATA_DIR}/{experiment}"
-        new_row = main(experiment_path=experiment_path)
-        rows.append(new_row)
-        # except Exception as e:
-        #     print(f"Error with {experiment}: {e}")
-        #     continue
-    df = pd.DataFrame(rows)
-    df_savepath = f'{OUT_DIR}/supervised_results.csv'
-    df.to_csv(df_savepath, index=False)
+        try:
+            experiment_path = f"{DATA_DIR}/{experiment}"
+            new_row = main(experiment_path=experiment_path)
+            rows.append(new_row)
+        except Exception as e:
+            print(f"Error with {experiment}: {e}")
+            continue
+        df = pd.DataFrame(rows)
+        df_savepath = f'{OUT_DIR}/CABM3_supervised_results.csv'
+        df.to_csv(df_savepath, index=False)
     print(f"Metrics for {len(df)} experiments saved to {os.getcwd()}/{df_savepath}")
     print(df.head())
     end = time.time()
