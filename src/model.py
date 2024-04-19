@@ -131,7 +131,7 @@ class ProteinModel(nn.Module):
     def __init__(self):
         super(ProteinModel, self).__init__()
         # Convolutional layers
-        self.conv1 = nn.Conv1d(in_channels=1281, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv1d(in_channels=1287, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv1d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.conv3 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
 
